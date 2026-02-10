@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: wanderwise-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: wanderwise
+      POSTGRES_PASSWORD: wanderwise_dev_password
+      POSTGRES_DB: wanderwise
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wanderwise"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: wanderwise-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://wanderwise:wanderwise_dev_password@postgres:5432/wanderwise?schema=public
+      PORT: 3000
+      CLIENT_URL: http://localhost:5173
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: npm run dev
+
+  # Frontend Client
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.dev
+    container_name: wanderwise-client
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_URL: http://localhost:3000/api
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    command: npm run dev
+
+volumes:
+  postgres_data:

@@ -1,0 +1,259 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum TripStatus {
+  DRAFT
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SafetyLevel {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+
+enum ActivityCategory {
+  DINING
+  SIGHTSEEING
+  ADVENTURE
+  CULTURAL
+  ENTERTAINMENT
+  SHOPPING
+  RELAXATION
+  NIGHTLIFE
+}
+
+enum PlanType {
+  PER_TRIP
+  MONTHLY_SUBSCRIPTION
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  firstName     String?
+  lastName      String?
+  phone         String?
+  profileImage  String?
+  
+  // User preferences
+  safetyProfile SafetyProfile?
+  
+  // Relationships
+  trips         Trip[]
+  payments      Payment[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("users")
+}
+
+model SafetyProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Safety concerns
+  isLGBTQ           Boolean  @default(false)
+  isSoloFemale      Boolean  @default(false)
+  hasAccessibilityNeeds Boolean @default(false)
+  religiousMinority Boolean  @default(false)
+  dietaryRestrictions String[]
+  languageBarriers  String[]
+  
+  // Travel preferences
+  preferredBudgetLevel String? // budget, moderate, luxury
+  travelStyle       String?    // adventurous, relaxed, cultural, etc.
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@map("safety_profiles")
+}
+
+model Trip {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Trip details
+  destination     String
+  country         String
+  city            String?
+  startDate       DateTime
+  endDate         DateTime
+  budget          Float
+  currency        String      @default("USD")
+  numberOfTravelers Int       @default(1)
+  
+  // Status
+  status          TripStatus  @default(DRAFT)
+  
+  // AI-generated content
+  itinerary       Itinerary?
+  safetyReport    SafetyReport?
+  
+  // Metadata
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@map("trips")
+}
+
+model Itinerary {
+  id              String      @id @default(cuid())
+  tripId          String      @unique
+  trip            Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  
+  // Itinerary content
+  days            Day[]
+  
+  // AI generation metadata
+  aiModel         String?
+  generatedAt     DateTime    @default(now())
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@map("itineraries")
+}
+
+model Day {
+  id              String      @id @default(cuid())
+  itineraryId     String
+  itinerary       Itinerary   @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  
+  dayNumber       Int
+  date            DateTime
+  theme           String?     // e.g., "Temple Hopping", "Beach Day"
+  
+  // Activities for this day
+  activities      Activity[]
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@unique([itineraryId, dayNumber])
+  @@map("days")
+}
+
+model Activity {
+  id              String          @id @default(cuid())
+  dayId           String
+  day             Day             @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  
+  // Activity details
+  name            String
+  description     String?
+  category        ActivityCategory
+  location        String
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  
+  // Timing
+  startTime       String?         // e.g., "9:00 AM"
+  duration        Int?            // in minutes
+  
+  // Cost
+  estimatedCost   Float?
+  currency        String          @default("USD")
+  
+  // Booking info
+  bookingUrl      String?
+  requiresBooking Boolean         @default(false)
+  
+  // Order in the day
+  order           Int
+  
+  // Safety notes
+  safetyNotes     String?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@map("activities")
+}
+
+model SafetyReport {
+  id              String          @id @default(cuid())
+  tripId          String          @unique
+  trip            Trip            @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  
+  // Overall safety assessment
+  overallLevel    SafetyLevel
+  summary         String
+  
+  // Detailed safety information
+  sections        SafetySection[]
+  
+  // AI generation metadata
+  aiModel         String?
+  generatedAt     DateTime        @default(now())
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@map("safety_reports")
+}
+
+model SafetySection {
+  id              String          @id @default(cuid())
+  safetyReportId  String
+  safetyReport    SafetyReport    @relation(fields: [safetyReportId], references: [id], onDelete: Cascade)
+  
+  title           String          // e.g., "LGBTQ+ Considerations", "Solo Female Travel"
+  level           SafetyLevel
+  content         String
+  tips            String[]
+  resources       String[]        // URLs or contact info
+  
+  order           Int
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@map("safety_sections")
+}
+
+model Payment {
+  id              String          @id @default(cuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Payment details
+  amount          Float
+  currency        String          @default("USD")
+  planType        PlanType
+  
+  // Stripe integration
+  stripePaymentId String?
+  stripeCustomerId String?
+  
+  // Status
+  status          String          // succeeded, pending, failed
+  
+  // Metadata
+  metadata        Json?
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  @@map("payments")
+}
