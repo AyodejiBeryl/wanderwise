@@ -28,9 +28,12 @@ class ApiClient {
       (response) => response,
       (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Token expired or invalid
-          localStorage.removeItem('token');
-          window.location.href = '/login';
+          const url = error.config?.url || '';
+          // Don't redirect on auth endpoints — let the form show the error
+          if (!url.includes('/auth/login') && !url.includes('/auth/register')) {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }

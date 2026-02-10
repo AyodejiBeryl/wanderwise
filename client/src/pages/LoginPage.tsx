@@ -32,8 +32,13 @@ const LoginPage = () => {
       clearError();
       await login(data.email, data.password);
       navigate('/dashboard');
-    } catch {
-      setSubmitError(error || 'Login failed. Please check your credentials.');
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Login failed. Please check your credentials.';
+      setSubmitError(message);
     }
   };
 
