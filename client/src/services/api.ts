@@ -125,6 +125,27 @@ class ApiClient {
     return response.data;
   }
 
+  // Suggestions endpoints
+  async generateHotelSuggestions(data: { tripId: string }) {
+    const response = await this.client.post('/suggestions/hotels/generate', data);
+    return response.data;
+  }
+
+  async generateFlightSuggestions(data: { tripId: string }) {
+    const response = await this.client.post('/suggestions/flights/generate', data);
+    return response.data;
+  }
+
+  async getHotelSuggestions(tripId: string) {
+    const response = await this.client.get(`/suggestions/hotels/${tripId}`);
+    return response.data;
+  }
+
+  async getFlightSuggestions(tripId: string) {
+    const response = await this.client.get(`/suggestions/flights/${tripId}`);
+    return response.data;
+  }
+
   // Payment endpoints
   async createCheckout(data: { planType: string; tripId?: string }) {
     const response = await this.client.post('/payments/create-checkout', data);

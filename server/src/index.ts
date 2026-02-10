@@ -14,6 +14,7 @@ import itineraryRoutes from './routes/itinerary.routes.js';
 import safetyRoutes from './routes/safety.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 import userRoutes from './routes/user.routes.js';
+import suggestionsRoutes from './routes/suggestions.routes.js';
 
 dotenv.config();
 
@@ -52,6 +53,7 @@ app.use('/api/itineraries', itineraryRoutes);
 app.use('/api/safety', safetyRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/suggestions', suggestionsRoutes);
 
 // Error handling
 app.use(notFound);

@@ -4,6 +4,10 @@ import { useTrip, useDeleteTrip } from '../hooks/useTrips';
 import { useGenerateItinerary } from '../hooks/useItinerary';
 import { useGenerateSafetyReport } from '../hooks/useSafety';
 import {
+  useGenerateHotelSuggestions,
+  useGenerateFlightSuggestions,
+} from '../hooks/useSuggestions';
+import {
   ArrowLeft,
   Calendar,
   DollarSign,
@@ -17,6 +21,8 @@ import {
   ChevronDown,
   ChevronUp,
   AlertTriangle,
+  Hotel,
+  Plane,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -33,6 +39,8 @@ const TripDetailPage = () => {
   const { data: trip, isLoading, error } = useTrip(id!);
   const generateItinerary = useGenerateItinerary();
   const generateSafetyReport = useGenerateSafetyReport();
+  const generateHotels = useGenerateHotelSuggestions();
+  const generateFlights = useGenerateFlightSuggestions();
   const deleteTrip = useDeleteTrip();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
@@ -290,6 +298,200 @@ const TripDetailPage = () => {
             <p>No itinerary yet. Click "Generate Itinerary" to create one.</p>
             <p className="text-xs mt-1">
               Our AI will create a personalized day-by-day plan for your trip.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Hotel Suggestions Section */}
+      <div className="card mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Hotel className="text-primary-600" size={22} />
+            Hotel Suggestions
+          </h2>
+          <button
+            onClick={() => generateHotels.mutate(id!)}
+            disabled={generateHotels.isLoading}
+            className="btn-primary text-sm flex items-center gap-2"
+          >
+            {generateHotels.isLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Generating...
+              </>
+            ) : trip.hotelSuggestions ? (
+              'Regenerate'
+            ) : (
+              'Get Hotel Suggestions'
+            )}
+          </button>
+        </div>
+
+        {generateHotels.isError && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+            Failed to generate hotel suggestions. Please try again.
+          </div>
+        )}
+
+        {trip.hotelSuggestions ? (
+          <div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(trip.hotelSuggestions as any).hotels?.map((hotel: any, i: number) => (
+                <div key={i} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-semibold text-gray-900">{hotel.name}</h3>
+                    <span className="text-xs bg-primary-50 text-primary-700 px-2 py-1 rounded-full whitespace-nowrap">
+                      {hotel.category}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">{hotel.description}</p>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {hotel.amenities?.map((amenity: string, j: number) => (
+                      <span key={j} className="text-xs bg-white border border-gray-200 px-2 py-0.5 rounded">
+                        {amenity}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-500 space-y-1">
+                    <p className="flex items-center gap-1">
+                      <MapPin size={12} />
+                      {hotel.area}
+                    </p>
+                    <p className="flex items-center gap-1">
+                      <DollarSign size={12} />
+                      {hotel.priceRange}
+                      {hotel.totalEstimate ? ` (~${hotel.totalEstimate} ${hotel.currency} total)` : ''}
+                    </p>
+                  </div>
+                  {hotel.whyRecommended && (
+                    <p className="text-xs text-primary-700 bg-primary-50 p-2 rounded mt-2">
+                      {hotel.whyRecommended}
+                    </p>
+                  )}
+                  {hotel.bookingTip && (
+                    <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded mt-2">
+                      {hotel.bookingTip}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            {(trip.hotelSuggestions as any).generalTips?.length > 0 && (
+              <div className="mt-4 bg-blue-50 rounded-lg p-3">
+                <p className="text-xs font-medium text-blue-800 uppercase mb-2">General Tips</p>
+                <ul className="space-y-1">
+                  {(trip.hotelSuggestions as any).generalTips.map((tip: string, i: number) => (
+                    <li key={i} className="text-sm text-blue-700 flex items-start gap-2">
+                      <span className="mt-1">•</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <Hotel className="mx-auto text-gray-300 mb-3" size={40} />
+            <p>No hotel suggestions yet. Click "Get Hotel Suggestions" to generate.</p>
+            <p className="text-xs mt-1">
+              Our AI will recommend accommodations that fit your budget and destination.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Flight Suggestions Section */}
+      <div className="card mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <Plane className="text-primary-600" size={22} />
+            Flight Suggestions
+          </h2>
+          <button
+            onClick={() => generateFlights.mutate(id!)}
+            disabled={generateFlights.isLoading}
+            className="btn-primary text-sm flex items-center gap-2"
+          >
+            {generateFlights.isLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Generating...
+              </>
+            ) : trip.flightSuggestions ? (
+              'Regenerate'
+            ) : (
+              'Get Flight Suggestions'
+            )}
+          </button>
+        </div>
+
+        {generateFlights.isError && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+            Failed to generate flight suggestions. Please try again.
+          </div>
+        )}
+
+        {trip.flightSuggestions ? (
+          <div>
+            <div className="space-y-3">
+              {(trip.flightSuggestions as any).flights?.map((flight: any, i: number) => (
+                <div key={i} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{flight.airline}</h3>
+                      <p className="text-sm text-gray-600">{flight.route}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-primary-700">
+                        ~{flight.estimatedPrice} {flight.currency}
+                      </p>
+                      <p className="text-xs text-gray-500">{flight.class}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                    {flight.duration && (
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} />
+                        {flight.duration}
+                      </span>
+                    )}
+                    {flight.bestBookingTime && (
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} />
+                        Book: {flight.bestBookingTime}
+                      </span>
+                    )}
+                  </div>
+                  {flight.tips && (
+                    <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded mt-2">
+                      {flight.tips}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            {(trip.flightSuggestions as any).generalTips?.length > 0 && (
+              <div className="mt-4 bg-blue-50 rounded-lg p-3">
+                <p className="text-xs font-medium text-blue-800 uppercase mb-2">General Tips</p>
+                <ul className="space-y-1">
+                  {(trip.flightSuggestions as any).generalTips.map((tip: string, i: number) => (
+                    <li key={i} className="text-sm text-blue-700 flex items-start gap-2">
+                      <span className="mt-1">•</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <Plane className="mx-auto text-gray-300 mb-3" size={40} />
+            <p>No flight suggestions yet. Click "Get Flight Suggestions" to generate.</p>
+            <p className="text-xs mt-1">
+              Our AI will suggest flight options and booking tips for your trip.
             </p>
           </div>
         )}

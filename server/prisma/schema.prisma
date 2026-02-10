@@ -104,10 +104,12 @@ model Trip {
   
   // Status
   status          TripStatus  @default(DRAFT)
-  
+
   // AI-generated content
   itinerary       Itinerary?
   safetyReport    SafetyReport?
+  hotelSuggestions Json?
+  flightSuggestions Json?
   
   // Metadata
   createdAt       DateTime    @default(now())

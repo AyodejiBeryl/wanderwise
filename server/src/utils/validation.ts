@@ -74,6 +74,11 @@ export const generateSafetyReportSchema = z.object({
   tripId: z.string().min(1, 'Trip ID is required'),
 });
 
+// Suggestions schemas
+export const generateSuggestionsSchema = z.object({
+  tripId: z.string().min(1, 'Trip ID is required'),
+});
+
 // User/Profile schemas
 export const updateProfileSchema = z.object({
   firstName: z.string().min(1).optional(),
