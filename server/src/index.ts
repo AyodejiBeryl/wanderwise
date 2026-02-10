@@ -23,7 +23,17 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
+      .split(',')
+      .map(o => o.trim());
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin || allowedOrigins.some(allowed => origin === allowed)) {
+      callback(null, origin || true);
+    } else {
+      callback(new Error(`CORS not allowed for origin: ${origin}`));
+    }
+  },
   credentials: true,
 }));
 app.use(morgan('dev'));
