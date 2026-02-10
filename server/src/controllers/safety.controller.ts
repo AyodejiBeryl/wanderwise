@@ -67,7 +67,7 @@ export const generateSafetyReport = async (
         tripId: trip.id,
         overallLevel: overallLevel as any,
         summary: aiResult.summary,
-        aiModel: 'gemini-2.0-flash',
+        aiModel: 'llama-3.3-70b-versatile',
         sections: {
           create: aiResult.sections.map((section, idx) => ({
             title: section.title,

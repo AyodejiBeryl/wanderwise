@@ -1,6 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+
+const AI_MODEL = 'llama-3.3-70b-versatile';
 
 interface TripContext {
   destination: string;
@@ -77,14 +79,6 @@ export async function generateItineraryWithAI(
   trip: TripContext,
   preferences?: ActivityPreferences
 ): Promise<GeneratedItinerary> {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
-    generationConfig: {
-      responseMimeType: 'application/json',
-      temperature: 0.8,
-    },
-  });
-
   const dayCount = getDayCount(trip.startDate, trip.endDate);
   const budgetPerDay = (trip.budget / dayCount).toFixed(0);
 
@@ -127,17 +121,26 @@ Respond with this exact JSON structure:
   ]
 }`;
 
-  let result;
+  let completion;
   try {
-    result = await model.generateContent(prompt);
+    completion = await groq.chat.completions.create({
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: 'You are a travel planning assistant. Always respond with valid JSON only, no extra text.' },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.8,
+      max_tokens: 4096,
+    });
   } catch (error: any) {
-    if (error.message?.includes('429') || error.message?.includes('quota')) {
+    if (error.status === 429 || error.message?.includes('rate_limit')) {
       throw new Error('AI service is temporarily rate-limited. Please wait a minute and try again.');
     }
     throw new Error('AI service is currently unavailable. Please try again later.');
   }
-  const text = result.response.text();
 
+  const text = completion.choices[0]?.message?.content || '';
   const parsed: GeneratedItinerary = JSON.parse(text);
   return parsed;
 }
@@ -146,14 +149,6 @@ export async function generateSafetyReportWithAI(
   trip: TripContext,
   safetyProfile?: SafetyProfileContext | null
 ): Promise<GeneratedSafetyReport> {
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash',
-    generationConfig: {
-      responseMimeType: 'application/json',
-      temperature: 0.7,
-    },
-  });
-
   const profileDetails = safetyProfile
     ? `
 Traveler Safety Profile:
@@ -194,17 +189,26 @@ Respond with this exact JSON structure:
   ]
 }`;
 
-  let result;
+  let completion;
   try {
-    result = await model.generateContent(prompt);
+    completion = await groq.chat.completions.create({
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: 'You are a travel safety expert. Always respond with valid JSON only, no extra text.' },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.7,
+      max_tokens: 4096,
+    });
   } catch (error: any) {
-    if (error.message?.includes('429') || error.message?.includes('quota')) {
+    if (error.status === 429 || error.message?.includes('rate_limit')) {
       throw new Error('AI service is temporarily rate-limited. Please wait a minute and try again.');
     }
     throw new Error('AI service is currently unavailable. Please try again later.');
   }
-  const text = result.response.text();
 
+  const text = completion.choices[0]?.message?.content || '';
   const parsed: GeneratedSafetyReport = JSON.parse(text);
   return parsed;
 }

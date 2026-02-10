@@ -54,7 +54,7 @@ export const generateItinerary = async (
     const itinerary = await prisma.itinerary.create({
       data: {
         tripId: trip.id,
-        aiModel: 'gemini-2.0-flash',
+        aiModel: 'llama-3.3-70b-versatile',
         days: {
           create: aiResult.days.map((day) => ({
             dayNumber: day.dayNumber,
