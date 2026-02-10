@@ -31,19 +31,24 @@ export const generateItinerary = async (
     }
 
     // Generate with AI
-    const aiResult = await generateItineraryWithAI(
-      {
-        destination: trip.destination,
-        country: trip.country,
-        city: trip.city,
-        startDate: trip.startDate,
-        endDate: trip.endDate,
-        budget: trip.budget,
-        currency: trip.currency,
-        numberOfTravelers: trip.numberOfTravelers,
-      },
-      validatedData.preferences
-    );
+    let aiResult;
+    try {
+      aiResult = await generateItineraryWithAI(
+        {
+          destination: trip.destination,
+          country: trip.country,
+          city: trip.city,
+          startDate: trip.startDate,
+          endDate: trip.endDate,
+          budget: trip.budget,
+          currency: trip.currency,
+          numberOfTravelers: trip.numberOfTravelers,
+        },
+        validatedData.preferences
+      );
+    } catch (aiError: any) {
+      throw new ApiError(503, aiError.message || 'Failed to generate itinerary. Please try again.');
+    }
 
     // Save to database
     const itinerary = await prisma.itinerary.create({

@@ -36,19 +36,24 @@ export const generateSafetyReport = async (
     }
 
     // Generate with AI
-    const aiResult = await generateSafetyReportWithAI(
-      {
-        destination: trip.destination,
-        country: trip.country,
-        city: trip.city,
-        startDate: trip.startDate,
-        endDate: trip.endDate,
-        budget: trip.budget,
-        currency: trip.currency,
-        numberOfTravelers: trip.numberOfTravelers,
-      },
-      safetyProfile
-    );
+    let aiResult;
+    try {
+      aiResult = await generateSafetyReportWithAI(
+        {
+          destination: trip.destination,
+          country: trip.country,
+          city: trip.city,
+          startDate: trip.startDate,
+          endDate: trip.endDate,
+          budget: trip.budget,
+          currency: trip.currency,
+          numberOfTravelers: trip.numberOfTravelers,
+        },
+        safetyProfile
+      );
+    } catch (aiError: any) {
+      throw new ApiError(503, aiError.message || 'Failed to generate safety report. Please try again.');
+    }
 
     // Validate safety levels
     const validLevels = ['LOW', 'MODERATE', 'HIGH', 'CRITICAL'];

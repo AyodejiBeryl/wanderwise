@@ -127,7 +127,15 @@ Respond with this exact JSON structure:
   ]
 }`;
 
-  const result = await model.generateContent(prompt);
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (error: any) {
+    if (error.message?.includes('429') || error.message?.includes('quota')) {
+      throw new Error('AI service is temporarily rate-limited. Please wait a minute and try again.');
+    }
+    throw new Error('AI service is currently unavailable. Please try again later.');
+  }
   const text = result.response.text();
 
   const parsed: GeneratedItinerary = JSON.parse(text);
@@ -186,7 +194,15 @@ Respond with this exact JSON structure:
   ]
 }`;
 
-  const result = await model.generateContent(prompt);
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (error: any) {
+    if (error.message?.includes('429') || error.message?.includes('quota')) {
+      throw new Error('AI service is temporarily rate-limited. Please wait a minute and try again.');
+    }
+    throw new Error('AI service is currently unavailable. Please try again later.');
+  }
   const text = result.response.text();
 
   const parsed: GeneratedSafetyReport = JSON.parse(text);
