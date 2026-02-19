@@ -79,16 +79,15 @@ const TripCard = ({ trip }: { trip: Trip }) => {
           <span>{trip.itinerary ? 'Itinerary ready' : 'No itinerary'}</span>
         </div>
         <div
-          className={`flex items-center gap-1 text-xs ${
-            trip.safetyReport
-              ? safetyColors[trip.safetyReport.overallLevel] || 'text-gray-600'
-              : 'text-gray-400'
-          }`}
+          className={`flex items-center gap-1 text-xs ${trip.safetyReport
+            ? safetyColors[trip.safetyReport.overallLevel] || 'text-gray-600'
+            : 'text-gray-400'
+            }`}
         >
           <Shield size={14} />
           <span>
             {trip.safetyReport
-              ? `Safety: ${trip.safetyReport.overallLevel}`
+              ? `Safety: ${trip.safetyReport.overallLevel} RISK`
               : 'No safety report'}
           </span>
         </div>
