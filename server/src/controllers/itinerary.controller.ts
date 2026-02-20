@@ -67,7 +67,9 @@ export const generateItinerary = async (
               create: day.activities.map((activity, idx) => ({
                 name: activity.name,
                 description: activity.description,
-                category: (activity.category || 'SIGHTSEEING').toUpperCase() as any,
+                category: ['DINING', 'SIGHTSEEING', 'ADVENTURE', 'CULTURAL', 'ENTERTAINMENT', 'SHOPPING', 'RELAXATION', 'NIGHTLIFE'].includes((activity.category || '').toUpperCase())
+                  ? (activity.category.toUpperCase() as any)
+                  : ('SIGHTSEEING' as any),
                 location: activity.location,
                 address: activity.address,
                 startTime: activity.startTime,
