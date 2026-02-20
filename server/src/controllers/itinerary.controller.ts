@@ -60,14 +60,14 @@ export const generateItinerary = async (
             dayNumber: day.dayNumber,
             date: new Date(
               new Date(trip.startDate).getTime() +
-                (day.dayNumber - 1) * 24 * 60 * 60 * 1000
+              (day.dayNumber - 1) * 24 * 60 * 60 * 1000
             ),
             theme: day.theme,
             activities: {
               create: day.activities.map((activity, idx) => ({
                 name: activity.name,
                 description: activity.description,
-                category: activity.category as any,
+                category: (activity.category || 'SIGHTSEEING').toUpperCase() as any,
                 location: activity.location,
                 address: activity.address,
                 startTime: activity.startTime,
