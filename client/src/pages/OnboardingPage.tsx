@@ -18,7 +18,7 @@ const tripSchema = z
     destination: z.string().min(1, 'Destination is required'),
     country: z.string().min(1, 'Country is required'),
     city: z.string().optional(),
-    departureCity: z.string().optional(),
+    departureCity: z.string().min(1, 'Departure city is required'),
     startDate: z.string().min(1, 'Start date is required'),
     endDate: z.string().min(1, 'End date is required'),
     budget: z
@@ -183,13 +183,18 @@ const OnboardingPage = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">
-                  Departing from <span className="text-gray-400">(optional)</span>
+                  Departing from
                 </label>
                 <input
                   {...register('departureCity')}
                   className="input-field"
                   placeholder="e.g., New York, Lagos, London"
                 />
+                {errors.departureCity && (
+                  <p className="text-red-600 text-sm mt-1">
+                    {errors.departureCity.message}
+                  </p>
+                )}
               </div>
             </div>
           )}

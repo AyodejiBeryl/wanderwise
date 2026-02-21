@@ -19,7 +19,7 @@ export const createTripSchema = z
     destination: z.string().min(1, 'Destination is required'),
     country: z.string().min(1, 'Country is required'),
     city: z.string().optional(),
-    departureCity: z.string().optional(),
+    departureCity: z.string().min(1, 'Departure city is required'),
     startDate: z.string().or(z.date()),
     endDate: z.string().or(z.date()),
     budget: z.number().positive('Budget must be positive'),

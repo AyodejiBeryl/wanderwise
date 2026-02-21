@@ -349,19 +349,17 @@ Respond with this exact JSON structure:
 export async function generateFlightSuggestionsWithAI(
   trip: TripContext
 ): Promise<GeneratedFlightSuggestions> {
-  const originInfo = trip.departureCity
-    ? `from ${trip.departureCity}`
-    : 'from a major international hub';
-
-  const prompt = `You are an expert flight and travel logistics advisor. Suggest flight options for traveling ${originInfo} to ${trip.destination}, ${trip.country}${trip.city ? ` (${trip.city})` : ''}.
+  const prompt = `You are an expert flight and travel logistics advisor. Suggest flight options for traveling from ${trip.departureCity} to ${trip.destination}, ${trip.country}${trip.city ? ` (${trip.city})` : ''}.
 
 Trip Details:
-${trip.departureCity ? `- Departing From: ${trip.departureCity}` : '- Departing From: Not specified (suggest from common hubs)'}
+- Departing From: ${trip.departureCity} (ALL flights MUST depart from here or its nearest airport)
 - Travel Dates: ${new Date(trip.startDate).toLocaleDateString()} to ${new Date(trip.endDate).toLocaleDateString()}
 - Total Trip Budget: ${trip.budget} ${trip.currency}
 - Number of Travelers: ${trip.numberOfTravelers}
 
-Suggest 3-4 realistic flight options including different airlines and price points. Include both direct and connecting flights if applicable. Mention the main airports. ${trip.departureCity ? `All routes must originate from ${trip.departureCity} or its nearest airport.` : ''} Be specific to this destination.
+IMPORTANT: Every single flight suggestion must originate from ${trip.departureCity} or the nearest major airport to ${trip.departureCity}. Do NOT suggest flights from other cities.
+
+Suggest 3-4 realistic flight options including different airlines and price points. Include both direct and connecting flights if applicable. Mention the specific airport codes.
 
 Respond with this exact JSON structure:
 {
