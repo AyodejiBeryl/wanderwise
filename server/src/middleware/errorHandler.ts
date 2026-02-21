@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 import logger from '../utils/logger.js';
 
 export interface AppError extends Error {
@@ -26,6 +27,19 @@ export const errorHandler = (
       })),
     });
     return;
+  }
+
+  // Handle Prisma known errors (e.g. unique constraint violations)
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err.code === 'P2002') {
+      const target = (err.meta?.target as string[])?.join(', ') || 'field';
+      res.status(409).json({
+        success: false,
+        status: 'fail',
+        message: `A record with that ${target} already exists`,
+      });
+      return;
+    }
   }
 
   const appErr = err as AppError;
@@ -74,6 +88,7 @@ export class ApiError extends Error implements AppError {
 
   constructor(statusCode: number, message: string) {
     super(message);
+    Object.setPrototypeOf(this, ApiError.prototype);
     this.statusCode = statusCode;
     this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
     this.isOperational = true;
