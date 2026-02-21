@@ -3,8 +3,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 import logger from './utils/logger.js';
@@ -26,9 +24,6 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Middleware
 app.use(helmet({
@@ -74,14 +69,10 @@ app.use('/api/templates', templatesRoutes);
 app.use('/api/collaborators', collaboratorRoutes);
 app.use('/api/weather', weatherRoutes);
 
-// Serve client build in production
-if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.resolve(__dirname, '../../client/dist');
-  app.use(express.static(clientDist));
-  app.get('*', (_req, res) => {
-    res.sendFile(path.join(clientDist, 'index.html'));
-  });
-}
+// Root route for health check / basic info
+app.get('/', (_req, res) => {
+  res.json({ message: 'WanderWise API is running!' });
+});
 
 // Error handling
 app.use(notFound);
