@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 import logger from './utils/logger.js';
@@ -15,22 +17,35 @@ import safetyRoutes from './routes/safety.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 import userRoutes from './routes/user.routes.js';
 import suggestionsRoutes from './routes/suggestions.routes.js';
+import chatRoutes from './routes/chat.routes.js';
+import templatesRoutes from './routes/templates.routes.js';
+import collaboratorRoutes from './routes/collaborator.routes.js';
+import weatherRoutes from './routes/weather.routes.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+}));
 app.use(cors({
   origin: (origin, callback) => {
+    // In production, allow same-origin (no origin header) requests
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
     const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
       .split(',')
       .map(o => o.trim());
-    // Allow requests with no origin (mobile apps, curl, etc.)
-    if (!origin || allowedOrigins.some(allowed => origin === allowed)) {
-      callback(null, origin || true);
+    if (allowedOrigins.some(allowed => origin === allowed)) {
+      callback(null, origin);
     } else {
       callback(new Error(`CORS not allowed for origin: ${origin}`));
     }
@@ -54,6 +69,19 @@ app.use('/api/safety', safetyRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/suggestions', suggestionsRoutes);
+app.use('/api/chat', chatRoutes);
+app.use('/api/templates', templatesRoutes);
+app.use('/api/collaborators', collaboratorRoutes);
+app.use('/api/weather', weatherRoutes);
+
+// Serve client build in production
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.resolve(__dirname, '../../client/dist');
+  app.use(express.static(clientDist));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(clientDist, 'index.html'));
+  });
+}
 
 // Error handling
 app.use(notFound);

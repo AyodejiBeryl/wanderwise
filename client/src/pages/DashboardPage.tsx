@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Plus, MapPin, Loader2 } from 'lucide-react';
+import { Plus, MapPin, Loader2, Sparkles } from 'lucide-react';
 import { useTrips } from '../hooks/useTrips';
 import TripCard from '../components/TripCard';
 
@@ -34,13 +34,22 @@ const DashboardPage = () => {
               : 'Plan your first adventure'}
           </p>
         </div>
-        <button
-          onClick={() => navigate('/onboarding')}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus size={18} />
-          Plan New Trip
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/templates')}
+            className="flex items-center gap-2 px-4 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 font-medium text-sm"
+          >
+            <Sparkles size={18} />
+            Browse Templates
+          </button>
+          <button
+            onClick={() => navigate('/onboarding')}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus size={18} />
+            Plan New Trip
+          </button>
+        </div>
       </div>
 
       {!trips || trips.length === 0 ? (

@@ -6,6 +6,7 @@ import { generateSuggestionsSchema } from '../utils/validation.js';
 import {
   generateHotelSuggestionsWithAI,
   generateFlightSuggestionsWithAI,
+  generateGroundTransportWithAI,
 } from '../services/ai.service.js';
 
 export const generateHotelSuggestions = async (
@@ -145,6 +146,77 @@ export const getFlightSuggestions = async (
     }
 
     res.json({ success: true, data: { flightSuggestions: trip.flightSuggestions } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const generateGroundTransportSuggestions = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    const validatedData = generateSuggestionsSchema.parse(req.body);
+
+    const trip = await prisma.trip.findFirst({
+      where: { id: validatedData.tripId, userId },
+    });
+
+    if (!trip) {
+      throw new ApiError(404, 'Trip not found');
+    }
+
+    let aiResult;
+    try {
+      aiResult = await generateGroundTransportWithAI({
+        destination: trip.destination,
+        country: trip.country,
+        city: trip.city,
+        departureCity: trip.departureCity,
+        startDate: trip.startDate,
+        endDate: trip.endDate,
+        budget: trip.budget,
+        currency: trip.currency,
+        numberOfTravelers: trip.numberOfTravelers,
+      });
+    } catch (aiError: any) {
+      throw new ApiError(503, aiError.message || 'Failed to generate ground transport suggestions. Please try again.');
+    }
+
+    const updatedTrip = await prisma.trip.update({
+      where: { id: trip.id },
+      data: { groundTransportSuggestions: aiResult as any },
+    });
+
+    res.status(201).json({ success: true, data: { groundTransportSuggestions: updatedTrip.groundTransportSuggestions } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getGroundTransportSuggestions = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    const tripId = req.params.tripId;
+
+    const trip = await prisma.trip.findFirst({
+      where: { id: tripId, userId },
+    });
+    if (!trip) {
+      throw new ApiError(404, 'Trip not found');
+    }
+
+    if (!trip.groundTransportSuggestions) {
+      throw new ApiError(404, 'Ground transport suggestions not found. Generate them first.');
+    }
+
+    res.json({ success: true, data: { groundTransportSuggestions: trip.groundTransportSuggestions } });
   } catch (error) {
     next(error);
   }

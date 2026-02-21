@@ -111,12 +111,35 @@ model Trip {
   safetyReport    SafetyReport?
   hotelSuggestions Json?
   flightSuggestions Json?
+  groundTransportSuggestions Json?
   
+  // Collaborators
+  collaborators   TripCollaborator[]
+
   // Metadata
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
-  
+
   @@map("trips")
+}
+
+model TripCollaborator {
+  id              String      @id @default(cuid())
+  tripId          String
+  trip            Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  email           String
+  role            String      @default("viewer") // viewer or editor
+  status          String      @default("pending") // pending or accepted
+
+  // Linked user (set when they accept / if they already have an account)
+  userId          String?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([tripId, email])
+  @@map("trip_collaborators")
 }
 
 model Itinerary {

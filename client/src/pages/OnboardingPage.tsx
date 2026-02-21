@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -50,8 +50,19 @@ const STEPS = [
 
 const OnboardingPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(0);
   const createTrip = useCreateTrip();
+
+  // Pre-fill from template query params
+  const templateDefaults: Partial<TripFormData> = {
+    currency: searchParams.get('currency') || 'USD',
+    numberOfTravelers: Number(searchParams.get('numberOfTravelers')) || 1,
+  };
+  if (searchParams.get('destination')) templateDefaults.destination = searchParams.get('destination')!;
+  if (searchParams.get('country')) templateDefaults.country = searchParams.get('country')!;
+  if (searchParams.get('city')) templateDefaults.city = searchParams.get('city')!;
+  if (searchParams.get('budget')) templateDefaults.budget = Number(searchParams.get('budget'));
 
   const {
     register,
@@ -60,10 +71,7 @@ const OnboardingPage = () => {
     formState: { errors },
   } = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
-    defaultValues: {
-      currency: 'USD',
-      numberOfTravelers: 1,
-    },
+    defaultValues: templateDefaults,
   });
 
   const stepFields: (keyof TripFormData)[][] = [

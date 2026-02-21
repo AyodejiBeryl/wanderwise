@@ -5,7 +5,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+      baseURL: import.meta.env.VITE_API_URL || '/api',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -143,6 +143,60 @@ class ApiClient {
 
   async getFlightSuggestions(tripId: string) {
     const response = await this.client.get(`/suggestions/flights/${tripId}`);
+    return response.data;
+  }
+
+  async generateGroundTransportSuggestions(data: { tripId: string }) {
+    const response = await this.client.post('/suggestions/transport/generate', data);
+    return response.data;
+  }
+
+  async getGroundTransportSuggestions(tripId: string) {
+    const response = await this.client.get(`/suggestions/transport/${tripId}`);
+    return response.data;
+  }
+
+  // Weather endpoints
+  async getWeather(tripId: string) {
+    const response = await this.client.get(`/weather/${tripId}`);
+    return response.data;
+  }
+
+  // Collaborator endpoints
+  async inviteCollaborator(tripId: string, data: { email: string; role: string }) {
+    const response = await this.client.post(`/collaborators/${tripId}/invite`, data);
+    return response.data;
+  }
+
+  async getCollaborators(tripId: string) {
+    const response = await this.client.get(`/collaborators/${tripId}`);
+    return response.data;
+  }
+
+  async removeCollaborator(tripId: string, collaboratorId: string) {
+    const response = await this.client.delete(`/collaborators/${tripId}/${collaboratorId}`);
+    return response.data;
+  }
+
+  async getSharedTrips() {
+    const response = await this.client.get('/collaborators/shared');
+    return response.data;
+  }
+
+  // Template endpoints
+  async getTemplates() {
+    const response = await this.client.get('/templates');
+    return response.data;
+  }
+
+  async getTemplate(id: string) {
+    const response = await this.client.get(`/templates/${id}`);
+    return response.data;
+  }
+
+  // Chat endpoints
+  async chatWithConcierge(data: { tripId: string; message: string; history: Array<{ role: string; content: string }> }) {
+    const response = await this.client.post('/chat', data);
     return response.data;
   }
 

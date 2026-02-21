@@ -346,6 +346,87 @@ Respond with this exact JSON structure:
   return parsed;
 }
 
+interface GeneratedGroundTransportOption {
+  mode: string;
+  provider: string;
+  route: string;
+  estimatedPrice: number;
+  currency: string;
+  duration: string;
+  frequency: string;
+  tips: string;
+  bookingUrl?: string;
+}
+
+interface GeneratedGroundTransportSuggestions {
+  nearestAirport: string;
+  transportOptions: GeneratedGroundTransportOption[];
+  generalTips: string[];
+}
+
+export async function generateGroundTransportWithAI(
+  trip: TripContext
+): Promise<GeneratedGroundTransportSuggestions> {
+  const destination = trip.city || trip.destination;
+
+  const prompt = `You are an expert local transportation advisor. Suggest ground transportation options for getting from the nearest major airport to ${destination}, ${trip.country}.
+
+Trip Details:
+- Destination: ${destination}, ${trip.country}
+- Number of Travelers: ${trip.numberOfTravelers}
+- Total Trip Budget: ${trip.budget} ${trip.currency}
+
+First, identify the nearest major airport to ${destination}. Then provide 4-5 ground transportation options for getting from that airport to the city center/main area of ${destination}. Include a mix of:
+- Public transit (bus, metro, train)
+- Airport shuttle or express services
+- Taxi / ride-hailing (Uber, Lyft, local equivalents)
+- Private transfer options
+- Car rental if relevant
+
+Be specific to this destination. Use real service names, routes, and realistic prices.
+
+Respond with this exact JSON structure:
+{
+  "nearestAirport": "Airport Name (CODE)",
+  "transportOptions": [
+    {
+      "mode": "Train",
+      "provider": "Service/Company Name",
+      "route": "Airport Station → City Center Station",
+      "estimatedPrice": 15,
+      "currency": "${trip.currency}",
+      "duration": "35 minutes",
+      "frequency": "Every 15 minutes",
+      "tips": "Specific tip for this option"
+    }
+  ],
+  "generalTips": ["General ground transport tip 1", "General ground transport tip 2"]
+}`;
+
+  let completion;
+  try {
+    completion = await groq.chat.completions.create({
+      model: AI_MODEL,
+      messages: [
+        { role: 'system', content: 'You are a local transportation expert. Always respond with valid JSON only, no extra text.' },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.8,
+      max_tokens: 3000,
+    });
+  } catch (error: any) {
+    if (error.status === 429 || error.message?.includes('rate_limit')) {
+      throw new Error('AI service is temporarily rate-limited. Please wait a minute and try again.');
+    }
+    throw new Error('AI service is currently unavailable. Please try again later.');
+  }
+
+  const text = completion.choices[0]?.message?.content || '';
+  const parsed: GeneratedGroundTransportSuggestions = JSON.parse(text);
+  return parsed;
+}
+
 export async function generateFlightSuggestionsWithAI(
   trip: TripContext
 ): Promise<GeneratedFlightSuggestions> {
@@ -413,4 +494,69 @@ Respond with this exact JSON structure:
   }));
 
   return parsed;
+}
+
+export async function chatConciergeWithAI(
+  trip: any,
+  userMessage: string,
+  history: Array<{ role: string; content: string }>
+): Promise<string> {
+  const dayCount = trip.itinerary?.days?.length || 0;
+  const hasItinerary = dayCount > 0;
+  const hasSafety = !!trip.safetyReport;
+
+  const systemPrompt = `You are WanderWise Concierge, a friendly and knowledgeable AI travel assistant. You are helping a traveler with their trip.
+
+Trip Details:
+- Destination: ${trip.destination}, ${trip.country}${trip.city ? ` (${trip.city})` : ''}
+- Departure: ${trip.departureCity || 'Not set'}
+- Dates: ${new Date(trip.startDate).toLocaleDateString()} to ${new Date(trip.endDate).toLocaleDateString()}
+- Budget: ${trip.budget} ${trip.currency}
+- Travelers: ${trip.numberOfTravelers}
+${hasItinerary ? `- Has a ${dayCount}-day itinerary generated` : '- No itinerary generated yet'}
+${hasSafety ? `- Safety level: ${trip.safetyReport.overallLevel}` : ''}
+
+You can help with:
+- Local restaurant recommendations, hidden gems, must-try foods
+- Cultural tips, etiquette, and local customs
+- Packing suggestions and what to wear
+- Language tips and useful phrases
+- Specific questions about activities in their itinerary
+- Alternative activity suggestions
+- Money-saving tips
+- Nightlife, shopping, and entertainment options
+- Visa and documentation advice
+- Local transportation tips
+
+Keep responses concise, friendly, and specific to their destination. Use bullet points for lists. Don't repeat the trip details back unless asked.`;
+
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+    { role: 'system', content: systemPrompt },
+  ];
+
+  for (const msg of history) {
+    messages.push({
+      role: msg.role as 'user' | 'assistant',
+      content: msg.content,
+    });
+  }
+
+  messages.push({ role: 'user', content: userMessage });
+
+  let completion;
+  try {
+    completion = await groq.chat.completions.create({
+      model: AI_MODEL,
+      messages,
+      temperature: 0.8,
+      max_tokens: 1000,
+    });
+  } catch (error: any) {
+    if (error.status === 429 || error.message?.includes('rate_limit')) {
+      throw new Error('AI concierge is temporarily rate-limited. Please wait a moment and try again.');
+    }
+    throw new Error('AI concierge is currently unavailable. Please try again later.');
+  }
+
+  return completion.choices[0]?.message?.content || 'Sorry, I couldn\'t generate a response. Please try again.';
 }

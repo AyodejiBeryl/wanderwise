@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import OnboardingPage from './pages/OnboardingPage';
 import TripDetailPage from './pages/TripDetailPage';
 import ProfilePage from './pages/ProfilePage';
+import TemplatesPage from './pages/TemplatesPage';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
@@ -47,6 +48,7 @@ function App() {
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/trips/:id" element={<TripDetailPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/templates" element={<TemplatesPage />} />
           </Route>
         </Route>
       </Routes>

@@ -6,6 +6,7 @@ import { useGenerateSafetyReport } from '../hooks/useSafety';
 import {
   useGenerateHotelSuggestions,
   useGenerateFlightSuggestions,
+  useGenerateGroundTransportSuggestions,
 } from '../hooks/useSuggestions';
 import {
   ArrowLeft,
@@ -24,8 +25,64 @@ import {
   Hotel,
   Plane,
   ExternalLink,
+  TrainFront,
+  Download,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import TripChat from '../components/TripChat';
+import TripCollaborators from '../components/TripCollaborators';
+import TripWeather from '../components/TripWeather';
+import { exportTripPdf } from '../utils/exportPdf';
+
+function activitySearchUrl(name: string, location: string, destination: string) {
+  const q = encodeURIComponent(`${name} ${location} ${destination}`);
+  return `https://www.google.com/maps/search/${q}`;
+}
+
+function calcBudgetBreakdown(trip: any) {
+  let activitiesCost = 0;
+  if (trip.itinerary?.days) {
+    for (const day of trip.itinerary.days) {
+      for (const act of day.activities || []) {
+        activitiesCost += act.estimatedCost || 0;
+      }
+    }
+  }
+
+  let hotelCost = 0;
+  if (trip.hotelSuggestions?.hotels?.length) {
+    // Use the cheapest hotel as the estimate
+    const cheapest = trip.hotelSuggestions.hotels.reduce(
+      (min: any, h: any) => (h.totalEstimate < min.totalEstimate ? h : min),
+      trip.hotelSuggestions.hotels[0]
+    );
+    hotelCost = cheapest.totalEstimate || 0;
+  }
+
+  let flightCost = 0;
+  if (trip.flightSuggestions?.flights?.length) {
+    const cheapest = trip.flightSuggestions.flights.reduce(
+      (min: any, f: any) => (f.estimatedPrice < min.estimatedPrice ? f : min),
+      trip.flightSuggestions.flights[0]
+    );
+    flightCost = (cheapest.estimatedPrice || 0) * (trip.numberOfTravelers || 1);
+  }
+
+  let transportCost = 0;
+  if (trip.groundTransportSuggestions?.transportOptions?.length) {
+    const cheapest = trip.groundTransportSuggestions.transportOptions.reduce(
+      (min: any, t: any) => (t.estimatedPrice < min.estimatedPrice ? t : min),
+      trip.groundTransportSuggestions.transportOptions[0]
+    );
+    transportCost = (cheapest.estimatedPrice || 0) * (trip.numberOfTravelers || 1);
+  }
+
+  const totalEstimated = activitiesCost + hotelCost + flightCost + transportCost;
+  const remaining = trip.budget - totalEstimated;
+  const pct = Math.min(100, Math.round((totalEstimated / trip.budget) * 100));
+
+  return { activitiesCost, hotelCost, flightCost, transportCost, totalEstimated, remaining, pct };
+}
 
 const SAFETY_COLORS: Record<string, string> = {
   LOW: 'bg-green-100 text-green-800',
@@ -42,6 +99,7 @@ const TripDetailPage = () => {
   const generateSafetyReport = useGenerateSafetyReport();
   const generateHotels = useGenerateHotelSuggestions();
   const generateFlights = useGenerateFlightSuggestions();
+  const generateTransport = useGenerateGroundTransportSuggestions();
   const deleteTrip = useDeleteTrip();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
@@ -127,6 +185,13 @@ const TripDetailPage = () => {
             {trip.status}
           </span>
           <button
+            onClick={() => exportTripPdf(trip)}
+            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg"
+            title="Download PDF"
+          >
+            <Download size={18} />
+          </button>
+          <button
             onClick={() => setShowDeleteConfirm(true)}
             className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
             title="Delete trip"
@@ -201,6 +266,71 @@ const TripDetailPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Weather */}
+      <TripWeather tripId={id!} />
+
+      {/* Budget Tracker */}
+      {(trip.itinerary || trip.hotelSuggestions || trip.flightSuggestions || trip.groundTransportSuggestions) && (() => {
+        const b = calcBudgetBreakdown(trip);
+        return (
+          <div className="card mb-6">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-4">
+              <DollarSign className="text-primary-600" size={22} />
+              Budget Tracker
+            </h2>
+            <div className="mb-3">
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-gray-600">
+                  Estimated: {b.totalEstimated.toLocaleString()} {trip.currency}
+                </span>
+                <span className="font-medium text-gray-900">
+                  Budget: {trip.budget.toLocaleString()} {trip.currency}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className={`h-3 rounded-full transition-all ${
+                    b.pct > 100 ? 'bg-red-500' : b.pct > 80 ? 'bg-amber-500' : 'bg-green-500'
+                  }`}
+                  style={{ width: `${Math.min(b.pct, 100)}%` }}
+                />
+              </div>
+              <p className={`text-sm mt-1 font-medium ${b.remaining < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {b.remaining >= 0
+                  ? `${b.remaining.toLocaleString()} ${trip.currency} remaining`
+                  : `${Math.abs(b.remaining).toLocaleString()} ${trip.currency} over budget`}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              {b.activitiesCost > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-gray-500 text-xs">Activities</p>
+                  <p className="font-semibold">{b.activitiesCost.toLocaleString()} {trip.currency}</p>
+                </div>
+              )}
+              {b.hotelCost > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-gray-500 text-xs">Hotel (cheapest)</p>
+                  <p className="font-semibold">{b.hotelCost.toLocaleString()} {trip.currency}</p>
+                </div>
+              )}
+              {b.flightCost > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-gray-500 text-xs">Flights</p>
+                  <p className="font-semibold">{b.flightCost.toLocaleString()} {trip.currency}</p>
+                </div>
+              )}
+              {b.transportCost > 0 && (
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-gray-500 text-xs">Transport</p>
+                  <p className="font-semibold">{b.transportCost.toLocaleString()} {trip.currency}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Itinerary Section */}
       <div className="card mb-6">
@@ -293,6 +423,16 @@ const TripDetailPage = () => {
                           {activity.safetyNotes}
                         </p>
                       )}
+                      <a
+                        href={activitySearchUrl(activity.name, activity.location, trip.destination)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-primary-600 hover:text-primary-700"
+                      >
+                        <MapPin size={12} />
+                        View on Maps
+                        <ExternalLink size={10} />
+                      </a>
                     </div>
                   ))}
                 </div>
@@ -526,6 +666,123 @@ const TripDetailPage = () => {
         )}
       </div>
 
+      {/* Ground Transport Section */}
+      <div className="card mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <TrainFront className="text-primary-600" size={22} />
+            Ground Transportation
+          </h2>
+          <button
+            onClick={() => generateTransport.mutate(id!)}
+            disabled={generateTransport.isLoading}
+            className="btn-primary text-sm flex items-center gap-2"
+          >
+            {generateTransport.isLoading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Generating...
+              </>
+            ) : trip.groundTransportSuggestions ? (
+              'Regenerate'
+            ) : (
+              'Get Transport Options'
+            )}
+          </button>
+        </div>
+
+        {generateTransport.isError && (
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
+            Failed to generate transport suggestions. Please try again.
+          </div>
+        )}
+
+        {trip.groundTransportSuggestions ? (
+          <div>
+            {(trip.groundTransportSuggestions as any).nearestAirport && (
+              <div className="bg-primary-50 rounded-lg p-3 mb-4">
+                <p className="text-sm font-medium text-primary-800">
+                  Nearest Airport: {(trip.groundTransportSuggestions as any).nearestAirport}
+                </p>
+              </div>
+            )}
+            <div className="space-y-3">
+              {(trip.groundTransportSuggestions as any).transportOptions?.map((option: any, i: number) => (
+                <div key={i} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        {option.mode}
+                        {option.provider && (
+                          <span className="font-normal text-gray-600"> — {option.provider}</span>
+                        )}
+                      </h3>
+                      <p className="text-sm text-gray-600">{option.route}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-primary-700">
+                        ~{option.estimatedPrice} {option.currency}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                    {option.duration && (
+                      <span className="flex items-center gap-1">
+                        <Clock size={12} />
+                        {option.duration}
+                      </span>
+                    )}
+                    {option.frequency && (
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} />
+                        {option.frequency}
+                      </span>
+                    )}
+                  </div>
+                  {option.tips && (
+                    <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded mt-2">
+                      {option.tips}
+                    </p>
+                  )}
+                  {option.bookingUrl && (
+                    <a
+                      href={option.bookingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Book Transport
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+            {(trip.groundTransportSuggestions as any).generalTips?.length > 0 && (
+              <div className="mt-4 bg-blue-50 rounded-lg p-3">
+                <p className="text-xs font-medium text-blue-800 uppercase mb-2">General Tips</p>
+                <ul className="space-y-1">
+                  {(trip.groundTransportSuggestions as any).generalTips.map((tip: string, i: number) => (
+                    <li key={i} className="text-sm text-blue-700 flex items-start gap-2">
+                      <span className="mt-1">&bull;</span>
+                      {tip}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <TrainFront className="mx-auto text-gray-300 mb-3" size={40} />
+            <p>No transport suggestions yet. Click "Get Transport Options" to generate.</p>
+            <p className="text-xs mt-1">
+              Get bus, train, taxi, and rideshare options from the nearest airport.
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Safety Report Section */}
       <div className="card mb-6">
         <div className="flex justify-between items-center mb-4">
@@ -665,6 +922,12 @@ const TripDetailPage = () => {
           </div>
         )}
       </div>
+
+      {/* Collaborators */}
+      <TripCollaborators tripId={id!} />
+
+      {/* AI Concierge Chat */}
+      <TripChat tripId={id!} destination={`${trip.destination}, ${trip.country}`} />
     </div>
   );
 };

@@ -34,3 +34,20 @@ export const useGenerateFlightSuggestions = () => {
     }
   );
 };
+
+export const useGenerateGroundTransportSuggestions = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    async (tripId: string) => {
+      const response = await api.generateGroundTransportSuggestions({ tripId });
+      return response.data.groundTransportSuggestions;
+    },
+    {
+      onSuccess: (_data, tripId) => {
+        queryClient.invalidateQueries(['trip', tripId]);
+        queryClient.invalidateQueries('trips');
+      },
+    }
+  );
+};

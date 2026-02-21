@@ -6,6 +6,7 @@ import { ApiError } from '../middleware/errorHandler.js';
 import { AuthRequest } from '../middleware/auth.js';
 import { registerSchema, loginSchema } from '../utils/validation.js';
 import logger from '../utils/logger.js';
+import { sendWelcomeEmail } from '../services/email.service.js';
 
 export const register = async (
   req: Request,
@@ -48,6 +49,9 @@ export const register = async (
     );
 
     logger.info(`User registered: ${user.email}`);
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(user.email, user.firstName);
 
     res.status(201).json({
       success: true,
