@@ -39,6 +39,14 @@ function activitySearchUrl(name: string, location: string, destination: string) 
   return `https://www.google.com/maps/search/${q}`;
 }
 
+function viatorUrl(name: string, destination: string) {
+  return `https://www.viator.com/search/${encodeURIComponent(destination)}?text=${encodeURIComponent(name)}`;
+}
+
+function getYourGuideUrl(name: string, destination: string) {
+  return `https://www.getyourguide.com/s/?q=${encodeURIComponent(`${name} ${destination}`)}`;
+}
+
 function calcBudgetBreakdown(trip: any) {
   let activitiesCost = 0;
   if (trip.itinerary?.days) {
@@ -423,16 +431,36 @@ const TripDetailPage = () => {
                           {activity.safetyNotes}
                         </p>
                       )}
-                      <a
-                        href={activitySearchUrl(activity.name, activity.location, trip.destination)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-primary-600 hover:text-primary-700"
-                      >
-                        <MapPin size={12} />
-                        View on Maps
-                        <ExternalLink size={10} />
-                      </a>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <a
+                          href={activitySearchUrl(activity.name, activity.location, trip.destination)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700"
+                        >
+                          <MapPin size={12} />
+                          View on Maps
+                          <ExternalLink size={10} />
+                        </a>
+                        <a
+                          href={viatorUrl(activity.name, trip.destination)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-orange-600 hover:text-orange-700"
+                        >
+                          Book on Viator
+                          <ExternalLink size={10} />
+                        </a>
+                        <a
+                          href={getYourGuideUrl(activity.name, trip.destination)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:text-green-700"
+                        >
+                          Book on GetYourGuide
+                          <ExternalLink size={10} />
+                        </a>
+                      </div>
                     </div>
                   ))}
                 </div>
