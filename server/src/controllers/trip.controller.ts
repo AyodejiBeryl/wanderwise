@@ -42,6 +42,7 @@ export const createTrip = async (
         destination: validatedData.destination,
         country: validatedData.country,
         city: validatedData.city,
+        departureCity: validatedData.departureCity,
         startDate: new Date(validatedData.startDate),
         endDate: new Date(validatedData.endDate),
         budget: validatedData.budget,

@@ -26,6 +26,7 @@ export const useCreateTrip = () => {
       destination: string;
       country: string;
       city?: string;
+      departureCity?: string;
       startDate: string;
       endDate: string;
       budget: number;

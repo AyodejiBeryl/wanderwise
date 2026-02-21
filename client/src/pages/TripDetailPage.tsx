@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Hotel,
   Plane,
+  ExternalLink,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -189,8 +190,14 @@ const TripDetailPage = () => {
         <div className="card flex items-center gap-3">
           <MapPin className="text-primary-600" size={20} />
           <div>
-            <p className="text-xs text-gray-500">City</p>
-            <p className="text-sm font-medium">{trip.city || 'Not set'}</p>
+            <p className="text-xs text-gray-500">
+              {trip.departureCity ? 'Route' : 'City'}
+            </p>
+            <p className="text-sm font-medium">
+              {trip.departureCity
+                ? `${trip.departureCity} → ${trip.city || trip.destination}`
+                : trip.city || 'Not set'}
+            </p>
           </div>
         </div>
       </div>
@@ -374,6 +381,17 @@ const TripDetailPage = () => {
                       {hotel.bookingTip}
                     </p>
                   )}
+                  {hotel.bookingUrl && (
+                    <a
+                      href={hotel.bookingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Book Hotel
+                      <ExternalLink size={14} />
+                    </a>
+                  )}
                 </div>
               ))}
             </div>
@@ -468,6 +486,17 @@ const TripDetailPage = () => {
                     <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded mt-2">
                       {flight.tips}
                     </p>
+                  )}
+                  {flight.bookingUrl && (
+                    <a
+                      href={flight.bookingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 mt-3 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 px-3 py-1.5 rounded-lg transition-colors"
+                    >
+                      Search Flights
+                      <ExternalLink size={14} />
+                    </a>
                   )}
                 </div>
               ))}

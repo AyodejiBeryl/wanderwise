@@ -38,6 +38,7 @@ export interface Trip {
   destination: string;
   country: string;
   city?: string;
+  departureCity?: string;
   startDate: Date;
   endDate: Date;
   budget: number;
@@ -167,6 +168,7 @@ export interface CreateTripRequest {
   destination: string;
   country: string;
   city?: string;
+  departureCity?: string;
   startDate: Date;
   endDate: Date;
   budget: number;

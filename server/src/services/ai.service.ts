@@ -8,6 +8,7 @@ interface TripContext {
   destination: string;
   country: string;
   city?: string | null;
+  departureCity?: string | null;
   startDate: Date;
   endDate: Date;
   budget: number;
@@ -81,6 +82,7 @@ interface GeneratedHotelSuggestion {
   amenities: string[];
   whyRecommended: string;
   bookingTip: string;
+  bookingUrl?: string;
 }
 
 interface GeneratedHotelSuggestions {
@@ -97,11 +99,37 @@ interface GeneratedFlightSuggestion {
   class: string;
   bestBookingTime: string;
   tips: string;
+  bookingUrl?: string;
 }
 
 interface GeneratedFlightSuggestions {
   flights: GeneratedFlightSuggestion[];
   generalTips: string[];
+}
+
+function generateFlightBookingUrl(
+  origin: string,
+  destination: string,
+  departDate: Date,
+  returnDate: Date
+): string {
+  const d = new Date(departDate).toISOString().split('T')[0];
+  const r = new Date(returnDate).toISOString().split('T')[0];
+  const q = encodeURIComponent(`flights from ${origin} to ${destination}`);
+  return `https://www.google.com/travel/flights?q=${q}&d=${d}&r=${r}`;
+}
+
+function generateHotelBookingUrl(
+  hotelName: string,
+  destination: string,
+  checkin: Date,
+  checkout: Date,
+  adults: number
+): string {
+  const ss = encodeURIComponent(`${hotelName} ${destination}`);
+  const ci = new Date(checkin).toISOString().split('T')[0];
+  const co = new Date(checkout).toISOString().split('T')[0];
+  return `https://www.booking.com/searchresults.html?ss=${ss}&checkin=${ci}&checkout=${co}&group_adults=${adults}`;
 }
 
 function getDayCount(start: Date, end: Date): number {
@@ -302,20 +330,38 @@ Respond with this exact JSON structure:
 
   const text = completion.choices[0]?.message?.content || '';
   const parsed: GeneratedHotelSuggestions = JSON.parse(text);
+
+  const destination = trip.city || trip.destination;
+  parsed.hotels = parsed.hotels.map((hotel) => ({
+    ...hotel,
+    bookingUrl: generateHotelBookingUrl(
+      hotel.name,
+      destination,
+      trip.startDate,
+      trip.endDate,
+      trip.numberOfTravelers
+    ),
+  }));
+
   return parsed;
 }
 
 export async function generateFlightSuggestionsWithAI(
   trip: TripContext
 ): Promise<GeneratedFlightSuggestions> {
-  const prompt = `You are an expert flight and travel logistics advisor. Suggest flight options for traveling to ${trip.destination}, ${trip.country}${trip.city ? ` (${trip.city})` : ''}.
+  const originInfo = trip.departureCity
+    ? `from ${trip.departureCity}`
+    : 'from a major international hub';
+
+  const prompt = `You are an expert flight and travel logistics advisor. Suggest flight options for traveling ${originInfo} to ${trip.destination}, ${trip.country}${trip.city ? ` (${trip.city})` : ''}.
 
 Trip Details:
+${trip.departureCity ? `- Departing From: ${trip.departureCity}` : '- Departing From: Not specified (suggest from common hubs)'}
 - Travel Dates: ${new Date(trip.startDate).toLocaleDateString()} to ${new Date(trip.endDate).toLocaleDateString()}
 - Total Trip Budget: ${trip.budget} ${trip.currency}
 - Number of Travelers: ${trip.numberOfTravelers}
 
-Suggest 3-4 realistic flight options including different airlines and price points. Include both direct and connecting flights if applicable. Mention the main airports. Be specific to this destination.
+Suggest 3-4 realistic flight options including different airlines and price points. Include both direct and connecting flights if applicable. Mention the main airports. ${trip.departureCity ? `All routes must originate from ${trip.departureCity} or its nearest airport.` : ''} Be specific to this destination.
 
 Respond with this exact JSON structure:
 {
@@ -355,5 +401,18 @@ Respond with this exact JSON structure:
 
   const text = completion.choices[0]?.message?.content || '';
   const parsed: GeneratedFlightSuggestions = JSON.parse(text);
+
+  const origin = trip.departureCity || 'flights';
+  const destination = trip.city || trip.destination;
+  parsed.flights = parsed.flights.map((flight) => ({
+    ...flight,
+    bookingUrl: generateFlightBookingUrl(
+      origin,
+      destination,
+      trip.startDate,
+      trip.endDate
+    ),
+  }));
+
   return parsed;
 }

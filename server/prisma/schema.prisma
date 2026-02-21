@@ -96,6 +96,7 @@ model Trip {
   destination     String
   country         String
   city            String?
+  departureCity   String?
   startDate       DateTime
   endDate         DateTime
   budget          Float
