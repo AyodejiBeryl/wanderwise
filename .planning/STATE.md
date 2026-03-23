@@ -11,10 +11,10 @@ See: `.planning/PROJECT.md` (updated Mar 22, 2026)
 
 **Phase 1 — Launch Readiness**
 
-- [ ] Plan 1-A: JWT fail-fast + env var validation
-- [ ] Plan 1-B: Stripe SDK + checkout session
-- [ ] Plan 1-C: Zod validation on AI responses
-- [ ] Plan 1-D: Type `trip` in chatConciergeWithAI
+- [x] Plan 1-A: JWT fail-fast + env var validation
+- [x] Plan 1-B: Stripe SDK + checkout session
+- [x] Plan 1-C: Zod validation on AI responses
+- [x] Plan 1-D: Type `trip` in chatConciergeWithAI
 
 ## Active Decisions
 
@@ -40,4 +40,5 @@ Written Mar 22, 2026. See `.planning/codebase/`:
 ## Session Log
 
 - Mar 22, 2026: Codebase mapped (7 documents), project initialized
-- Next: `/gsd:plan-phase 1` to break Phase 1 into atomic tasks
+- Mar 22, 2026: Phase 1 complete — all 4 critical bugs fixed, TypeScript builds clean
+- Next: Add STRIPE_SECRET_KEY + STRIPE_PUBLISHABLE_KEY to server .env, smoke-test checkout flow

@@ -22,6 +22,14 @@ import weatherRoutes from './routes/weather.routes.js';
 
 dotenv.config();
 
+// Fail fast on missing required environment variables
+const REQUIRED_ENV_VARS = ['JWT_SECRET', 'DATABASE_URL', 'STRIPE_SECRET_KEY'];
+const missingVars = REQUIRED_ENV_VARS.filter((v) => !process.env[v]);
+if (missingVars.length > 0) {
+  console.error(`FATAL: Missing required environment variables: ${missingVars.join(', ')}`);
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 

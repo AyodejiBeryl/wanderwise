@@ -1,6 +1,118 @@
 import Groq from 'groq-sdk';
+import { z } from 'zod';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+
+// ── AI response Zod schemas ────────────────────────────────────────────────
+
+const ActivitySchema = z.object({
+  name: z.string(),
+  description: z.string().optional().default(''),
+  category: z.string(),
+  location: z.string(),
+  address: z.string().optional(),
+  startTime: z.string().optional(),
+  duration: z.number().optional(),
+  estimatedCost: z.number().optional(),
+  currency: z.string().optional(),
+  safetyNotes: z.string().optional(),
+  requiresBooking: z.boolean().default(false),
+});
+
+const DaySchema = z.object({
+  dayNumber: z.number(),
+  theme: z.string().optional().default(''),
+  activities: z.array(ActivitySchema),
+});
+
+const ItineraryResponseSchema = z.object({
+  days: z.array(DaySchema),
+});
+
+const SafetySectionSchema = z.object({
+  title: z.string(),
+  level: z.string(),
+  content: z.string(),
+  tips: z.array(z.string()),
+  resources: z.array(z.string()),
+  order: z.number().optional(),
+});
+
+const SafetyReportResponseSchema = z.object({
+  overallLevel: z.string(),
+  summary: z.string(),
+  sections: z.array(SafetySectionSchema),
+});
+
+const HotelSchema = z.object({
+  name: z.string(),
+  area: z.string(),
+  priceRange: z.string(),
+  totalEstimate: z.number(),
+  currency: z.string(),
+  category: z.string(),
+  description: z.string(),
+  amenities: z.array(z.string()),
+  whyRecommended: z.string(),
+  bookingTip: z.string(),
+  bookingUrl: z.string().optional(),
+});
+
+const HotelSuggestionsResponseSchema = z.object({
+  hotels: z.array(HotelSchema),
+  generalTips: z.array(z.string()),
+});
+
+const FlightSchema = z.object({
+  airline: z.string(),
+  route: z.string(),
+  estimatedPrice: z.number(),
+  currency: z.string(),
+  duration: z.string(),
+  class: z.string(),
+  bestBookingTime: z.string(),
+  tips: z.string(),
+  bookingUrl: z.string().optional(),
+});
+
+const FlightSuggestionsResponseSchema = z.object({
+  flights: z.array(FlightSchema),
+  generalTips: z.array(z.string()),
+});
+
+const GroundTransportOptionSchema = z.object({
+  mode: z.string(),
+  provider: z.string(),
+  route: z.string(),
+  estimatedPrice: z.number(),
+  currency: z.string(),
+  duration: z.string(),
+  frequency: z.string(),
+  tips: z.string(),
+  bookingUrl: z.string().optional(),
+});
+
+const GroundTransportResponseSchema = z.object({
+  nearestAirport: z.string(),
+  transportOptions: z.array(GroundTransportOptionSchema),
+  generalTips: z.array(z.string()),
+});
+
+// ── Trip type for chat concierge ───────────────────────────────────────────
+
+interface ConciergeTrip {
+  destination: string;
+  country: string;
+  city?: string | null;
+  departureCity?: string | null;
+  startDate: Date | string;
+  endDate: Date | string;
+  budget: number;
+  currency: string;
+  numberOfTravelers: number;
+  itinerary?: { days?: unknown[] } | null;
+  safetyReport?: { overallLevel?: string } | null;
+}
 
 const AI_MODEL = 'llama-3.3-70b-versatile';
 
@@ -203,8 +315,11 @@ Respond with this exact JSON structure:
   }
 
   const text = completion.choices[0]?.message?.content || '';
-  const parsed: GeneratedItinerary = JSON.parse(text);
-  return parsed;
+  const result = ItineraryResponseSchema.safeParse(JSON.parse(text));
+  if (!result.success) {
+    throw new Error('AI returned an unexpected itinerary format. Please try again.');
+  }
+  return result.data as GeneratedItinerary;
 }
 
 export async function generateSafetyReportWithAI(
@@ -271,8 +386,11 @@ Respond with this exact JSON structure:
   }
 
   const text = completion.choices[0]?.message?.content || '';
-  const parsed: GeneratedSafetyReport = JSON.parse(text);
-  return parsed;
+  const result = SafetyReportResponseSchema.safeParse(JSON.parse(text));
+  if (!result.success) {
+    throw new Error('AI returned an unexpected safety report format. Please try again.');
+  }
+  return result.data as GeneratedSafetyReport;
 }
 
 export async function generateHotelSuggestionsWithAI(
@@ -329,7 +447,11 @@ Respond with this exact JSON structure:
   }
 
   const text = completion.choices[0]?.message?.content || '';
-  const parsed: GeneratedHotelSuggestions = JSON.parse(text);
+  const result = HotelSuggestionsResponseSchema.safeParse(JSON.parse(text));
+  if (!result.success) {
+    throw new Error('AI returned an unexpected hotel suggestions format. Please try again.');
+  }
+  const parsed = result.data as GeneratedHotelSuggestions;
 
   const destination = trip.city || trip.destination;
   parsed.hotels = parsed.hotels.map((hotel) => ({
@@ -423,8 +545,11 @@ Respond with this exact JSON structure:
   }
 
   const text = completion.choices[0]?.message?.content || '';
-  const parsed: GeneratedGroundTransportSuggestions = JSON.parse(text);
-  return parsed;
+  const result = GroundTransportResponseSchema.safeParse(JSON.parse(text));
+  if (!result.success) {
+    throw new Error('AI returned an unexpected transport format. Please try again.');
+  }
+  return result.data as GeneratedGroundTransportSuggestions;
 }
 
 export async function generateFlightSuggestionsWithAI(
@@ -479,7 +604,11 @@ Respond with this exact JSON structure:
   }
 
   const text = completion.choices[0]?.message?.content || '';
-  const parsed: GeneratedFlightSuggestions = JSON.parse(text);
+  const flightResult = FlightSuggestionsResponseSchema.safeParse(JSON.parse(text));
+  if (!flightResult.success) {
+    throw new Error('AI returned an unexpected flights format. Please try again.');
+  }
+  const parsed = flightResult.data as GeneratedFlightSuggestions;
 
   const origin = trip.departureCity || 'flights';
   const destination = trip.city || trip.destination;
@@ -497,7 +626,7 @@ Respond with this exact JSON structure:
 }
 
 export async function chatConciergeWithAI(
-  trip: any,
+  trip: ConciergeTrip,
   userMessage: string,
   history: Array<{ role: string; content: string }>
 ): Promise<string> {
@@ -514,7 +643,7 @@ Trip Details:
 - Budget: ${trip.budget} ${trip.currency}
 - Travelers: ${trip.numberOfTravelers}
 ${hasItinerary ? `- Has a ${dayCount}-day itinerary generated` : '- No itinerary generated yet'}
-${hasSafety ? `- Safety level: ${trip.safetyReport.overallLevel}` : ''}
+${hasSafety ? `- Safety level: ${trip.safetyReport?.overallLevel}` : ''}
 
 You can help with:
 - Local restaurant recommendations, hidden gems, must-try foods
