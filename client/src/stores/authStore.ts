@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import api from '../services/api';
 
+function tokenExpiresWithin24h(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expiresAt = payload.exp * 1000;
+    return expiresAt - Date.now() < 24 * 60 * 60 * 1000;
+  } catch {
+    return false;
+  }
+}
+
 interface User {
   id: string;
   email: string;
@@ -48,10 +58,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  initialize: () => {
+  initialize: async () => {
     const token = localStorage.getItem('token');
     if (token) {
       set({ token, isAuthenticated: true });
+      // Silently refresh if token is within 24h of expiry
+      if (tokenExpiresWithin24h(token)) {
+        try {
+          const response = await api.refreshToken();
+          const newToken = response.data.token;
+          localStorage.setItem('token', newToken);
+          set({ token: newToken });
+        } catch {
+          // Refresh failed — token is still valid for now, continue
+        }
+      }
       get().fetchCurrentUser();
     }
   },

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth.js';
 import prisma from '../services/prisma.js';
 import { ApiError } from '../middleware/errorHandler.js';
+import { sendCollaboratorInviteEmail } from '../services/email.service.js';
 
 const inviteSchema = z.object({
   email: z.string().email(),
@@ -50,6 +51,11 @@ export const inviteCollaborator = async (
         status: existingUser ? 'accepted' : 'pending',
       },
     });
+
+    // Send invite email (non-blocking)
+    const inviterName = owner ? `${owner.firstName || ''} ${owner.lastName || ''}`.trim() || owner.email : 'Someone';
+    const appUrl = process.env.CLIENT_URL?.split(',')[0]?.trim() || 'https://wanderwise-client-u7qr.vercel.app';
+    sendCollaboratorInviteEmail(email, inviterName, trip.destination, appUrl);
 
     res.status(201).json({ success: true, data: { collaborator } });
   } catch (error) {

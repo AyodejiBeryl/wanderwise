@@ -258,6 +258,18 @@ model SafetySection {
   @@map("safety_sections")
 }
 
+model ChatMessage {
+  id        String   @id @default(cuid())
+  tripId    String
+  userId    String
+  role      String   // "user" or "assistant"
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([tripId, createdAt])
+  @@map("chat_messages")
+}
+
 model Payment {
   id              String          @id @default(cuid())
   userId          String

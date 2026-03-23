@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
+import { aiRateLimit } from '../middleware/aiRateLimit.js';
 import {
   generateSafetyReport,
   getSafetyReport,
@@ -9,7 +10,7 @@ const router = Router();
 router.use(authenticate);
 
 // POST /api/safety/generate - Generate safety report
-router.post('/generate', generateSafetyReport);
+router.post('/generate', aiRateLimit, generateSafetyReport);
 
 // GET /api/safety/:tripId - Get safety report for trip
 router.get('/:tripId', getSafetyReport);

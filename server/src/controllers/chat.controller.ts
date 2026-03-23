@@ -42,7 +42,41 @@ export const chatWithConcierge = async (
       throw new ApiError(503, aiError.message || 'AI concierge is temporarily unavailable.');
     }
 
+    // Persist both messages (non-blocking — don't let DB failure break chat)
+    prisma.chatMessage.createMany({
+      data: [
+        { tripId, userId, role: 'user', content: message },
+        { tripId, userId, role: 'assistant', content: reply },
+      ],
+    }).catch(() => {/* ignore persistence errors */});
+
     res.json({ success: true, data: { reply } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getChatHistory = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    const { tripId } = req.params;
+
+    const trip = await prisma.trip.findFirst({ where: { id: tripId, userId } });
+    if (!trip) {
+      throw new ApiError(404, 'Trip not found');
+    }
+
+    const messages = await prisma.chatMessage.findMany({
+      where: { tripId, userId },
+      orderBy: { createdAt: 'asc' },
+      take: 100,
+    });
+
+    res.json({ success: true, data: { messages } });
   } catch (error) {
     next(error);
   }

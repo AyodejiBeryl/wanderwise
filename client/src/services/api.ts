@@ -61,6 +61,11 @@ class ApiClient {
     return response.data;
   }
 
+  async refreshToken() {
+    const response = await this.client.post('/auth/refresh');
+    return response.data;
+  }
+
   // Trip endpoints
   async getTrips() {
     const response = await this.client.get('/trips');
@@ -197,6 +202,11 @@ class ApiClient {
   // Chat endpoints
   async chatWithConcierge(data: { tripId: string; message: string; history: Array<{ role: string; content: string }> }) {
     const response = await this.client.post('/chat', data);
+    return response.data;
+  }
+
+  async getChatHistory(tripId: string) {
+    const response = await this.client.get(`/chat/history/${tripId}`);
     return response.data;
   }
 

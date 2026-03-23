@@ -5,14 +5,13 @@ import { authenticate } from '../middleware/auth.js';
 const router = Router();
 router.use(authenticate);
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
-
 const PRICES: Record<string, number> = {
   PER_TRIP: 599,             // $5.99 in cents
   MONTHLY_SUBSCRIPTION: 999, // $9.99 in cents
 };
 
 router.post('/create-checkout', async (req: Request, res: Response) => {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
   const { planType, tripId } = req.body as { planType: string; tripId?: string };
 
   if (!planType || !PRICES[planType]) {

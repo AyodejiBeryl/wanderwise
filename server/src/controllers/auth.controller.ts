@@ -113,6 +113,28 @@ export const logout = async (_req: Request, res: Response) => {
   });
 };
 
+// Sliding-window token refresh — issues a fresh 7d token if the current one is still valid
+export const refreshToken = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+    const email = req.user!.email;
+
+    const token = jwt.sign(
+      { id: userId, email },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '7d' as any }
+    );
+
+    res.json({ success: true, data: { token } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getCurrentUser = async (
   req: AuthRequest,
   res: Response,

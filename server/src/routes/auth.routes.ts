@@ -4,6 +4,7 @@ import {
   login,
   logout,
   getCurrentUser,
+  refreshToken,
 } from '../controllers/auth.controller.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -20,5 +21,8 @@ router.post('/logout', authenticate, logout);
 
 // GET /api/auth/me
 router.get('/me', authenticate, getCurrentUser);
+
+// POST /api/auth/refresh — sliding-window token refresh
+router.post('/refresh', authenticate, refreshToken);
 
 export default router;
